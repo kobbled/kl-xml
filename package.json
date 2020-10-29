@@ -1,0 +1,27 @@
+{
+  "manver" : "1",
+  "project" : "xml",
+  "description" : "Library for reading and writing xml files",
+  "version" : "0.0.1",
+  "license" : "MIT",
+  "author" : "kobbled",
+  "source" : [
+    "src/xml.kl"
+  ],
+  "includes" : [
+    "include"
+  ],
+  "tests" : [
+    "test/attr_test.yml",
+    "test/test_xml.kl"
+  ],
+  "depends" : [
+    "files",
+    "errors",
+    "display",
+    "multitask",
+    "Strings",
+    "KUnit",
+    "ktransw-macros"
+  ]
+}

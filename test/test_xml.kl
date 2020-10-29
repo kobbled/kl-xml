@@ -1,0 +1,122 @@
+PROGRAM test_xml
+%NOLOCKGROUP
+
+%ifeq DEBUG_BUILD FALSE
+%undef DEBUG_BUILD
+%endif
+
+TYPE
+  t_product = STRUCTURE
+    sku : STRING[8]
+    desc : STRING[20]
+    price : REAL
+    quantity : BYTE
+  ENDSTRUCTURE
+
+VAR
+%define xml1_name 'fr:small_test.xml'
+  xml1 : FILE
+%define xml2_name 'fr:attr_test.xml'
+  xml2 : FILE
+  product1 : t_product
+  product2 : t_product
+  address1 : ARRAY[4] OF STRING[30]
+  address2 : ARRAY[4] OF STRING[30]
+
+%ifdef DEBUG_BUILD
+%include display.c.klt
+%define xml_log_name 'FR:xml_log.DT'
+%include display.klh
+%endif
+
+%from strings.klh %import s_to_arr
+%from multitask.klh %import is_task_running
+%include xml.private.klh
+%include xml.klh
+%include kunit.klh
+
+%ifdef DEBUG_BUILD
+-- userframe log
+%class xmldbg('dispclass.klc','dispclass.klh')
+%endif
+
+ROUTINE get_attr
+  VAR
+    id : INTEGER
+    i : INTEGER
+    tag_names : ARRAY[4] OF STRING[12]
+  BEGIN
+
+    xml__get_attributes(xml2_name, xml2, 'products', 1, '[test_xml]product1')
+    xml__get_attributes(xml2_name, xml2, 'products', 2, '[test_xml]product2')
+
+    s_to_arr('address,city,state,postal', ',', tag_names)
+    xml__get_content(xml2_name, xml2, 'addresses', 1, tag_names, address1)
+    xml__get_content(xml2_name, xml2, 'addresses', 2, tag_names, address2)
+
+  END get_attr
+
+ROUTINE t_get_attr1 : BOOLEAN
+  BEGIN
+    RETURN(kunit_eq_str('BL394D',(product1.sku)) AND
+      kunit_eq_int(4,(product1.quantity)) AND
+      kunit_eq_str('Basketball',product1.desc) AND
+      kunit_eq_r(450.00,(product1.price)) )
+  END t_get_attr1
+
+ROUTINE t_get_attr2 : BOOLEAN
+  BEGIN
+    RETURN(kunit_eq_str('BL4438H',(product2.sku)) AND
+      kunit_eq_int(1,(product2.quantity)) AND
+      kunit_eq_str('Super Hoop',product2.desc) AND
+      kunit_eq_r(2392.50,(product2.price)) )
+  END t_get_attr2
+
+ROUTINE t_get_cont1 : BOOLEAN
+  BEGIN
+
+    RETURN(kunit_eq_str('458 Walkman Dr., Suite 222',address1[1]) AND
+        kunit_eq_str('Royal Oak',address1[2]) AND kunit_eq_str('MI',address1[3]) AND
+        kunit_eq_str('48046',address1[4]))
+  END t_get_cont1
+
+ROUTINE t_get_cont2 : BOOLEAN
+  BEGIN
+
+    RETURN(kunit_eq_str('13311 Venus Way',address2[1]) AND
+        kunit_eq_str('Anchorage',address2[2]) AND kunit_eq_str('AK',address2[3]) AND
+        kunit_eq_str('99515',address2[4]))
+  END t_get_cont2
+
+BEGIN
+
+%ifdef DEBUG_BUILD
+  --clear display
+  display__clear
+
+  --(log_filename, show_date, show_DEBUG, show_info)
+  xmldbg__constructor(xml_log_name, TRUE, TRUE, TRUE) -- print to console
+  xmldbg__clear_file
+  -- start log
+  xmldbg__print(INFO, 'XML DEBUG LOG')
+  xmldbg__show_date(FALSE)
+%endif
+
+  get_attr
+%ifndef DEBUG_BUILD
+  kunit_test('test xml attributes 1', t_get_attr1) --asserts 4
+  kunit_test('test xml attributes 2', t_get_attr2) --asserts 4
+  kunit_test('test xml contents 1', t_get_cont1) --asserts 4
+  kunit_test('test xml contents 2', t_get_cont2) --asserts 4
+  kunit_done
+%endif
+
+
+%ifdef DEBUG_BUILD
+  --print pipe
+  xmldbg__write_pipe
+  xmldbg__destructor
+
+  display__show
+%endif
+END test_xml

@@ -1,0 +1,18 @@
+%ifndef XML_PRIVATE_H
+%define XML_PRIVATE_H
+
+%include namespace.m
+
+%define prog_name xml
+%define prog_name_alias xml
+
+--encode string to a hash integer
+declare_function(prog_name,djb2_,prog_name_alias,djb2)
+ROUTINE xml__djb2_(str : STRING) : INTEGER FROM xmlib
+
+declare_function(prog_name,register_tag_,prog_name_alias,regtag)
+ROUTINE xml__register_tag_(fl : FILE; tag_name : STRING) : INTEGER FROM xmlib
+declare_function(prog_name,get_tag_id_,prog_name_alias,gettag)
+ROUTINE xml__get_tag_id_(tag_name : STRING) : INTEGER FROM xmlib
+
+%endif -- XML_PRIVATE_H

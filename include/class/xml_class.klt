@@ -1,0 +1,22 @@
+%ifndef xml_class_t
+%define xml_class_t
+
+-- maximum number of tags alotted
+%define MAX_TAGS 30
+
+%include xml_types.klt
+
+-- Hash to store ids
+%include hashxml.klt
+hash_type_define(HASH_OBJECT)
+%undef hash_type_define
+
+t_hash(hashname,hval_def,HASH_OBJECT)
+
+VAR
+  xml_name : STRING[12]
+  xml_file : FILE
+  graph : ARRAY[MAX_TAGS] OF hashname
+
+
+%endif --xml_class_t

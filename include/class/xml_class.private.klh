@@ -1,0 +1,9 @@
+%ifndef XML_PRIVATE_H
+%define XML_PRIVATE_H
+
+--oop
+%include namespace.m
+
+-- namespaced members in format <prog_name_alias>__<func_name>
+
+%endif -- XML_PRIVATE_H

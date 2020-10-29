@@ -1,0 +1,318 @@
+PROGRAM xmlib
+%NOBUSYLAMP
+%COMMENT = 'xml general routines'
+%NOLOCKGROUP
+%NOPAUSE = ERROR + TPENABLE + COMMAND
+
+%ifeq DEBUG_BUILD FALSE
+%undef DEBUG_BUILD
+%endif
+
+%include xml.klt
+
+--macro for tag length. select enum from
+--xml.klt
+%defeval TAG_LENGTH SMALL_TAG
+%define LIST_STRING_LEN 128
+
+--xml errors
+%include klerxmlf.kl
+%include errors.klt
+
+
+%ifdef DEBUG_BUILD
+%include display.c.klt
+%include display.klh
+%endif
+
+%from errors.klh %import karelError
+%from strings.klh %import rev_split, i_to_s, remove_char, search_str, char_count, get_progname, get_varname 
+%from files.klh %import open, close
+%include xml.private.klh
+%include xml.klh
+
+%ifdef DEBUG_BUILD
+-- userframe log
+%class xmldbg('dispclass.klc','dispclass.klh')
+%endif
+
+--private:
+
+ROUTINE xml__djb2_
+VAR
+	hash : INTEGER
+	i    : INTEGER
+	char : INTEGER
+BEGIN
+	hash = 5381
+	FOR i=1 TO STR_LEN(str) DO
+		char = ORD(str, i)
+		hash = hash * 33 + char
+	ENDFOR
+	RETURN(hash)
+END xml__djb2_
+
+ROUTINE xml__register_tag_
+  VAR
+    status : INTEGER
+    tagid : INTEGER
+  BEGIN
+    tagid = xml__djb2_(tag_name)
+    XML_ADDTAG(fl, tag_name, TAG_LENGTH, FALSE, tagid, status)
+%ifdef DEBUG_BUILD
+    xmldbg__print(DEBUG, 'registered tag '+ tag_name +' : ' + i_to_s(tagid) )
+%endif
+
+    RETURN(tagid)
+  END xml__register_tag_
+
+ROUTINE xml__get_tag_id_
+  BEGIN
+    RETURN(xml__djb2_(tag_name))
+  END xml__get_tag_id_
+
+
+-- public:
+
+ROUTINE xml__open_file
+  BEGIN
+    SET_FILE_ATR(fl, ATR_XML)
+    files__open(filename, access_typ, fl)
+  END xml__open_file
+
+ROUTINE xml__close_file
+  BEGIN
+    files__close(filename, fl)
+  END xml__close_file
+
+ROUTINE xml__get_attributes
+  VAR
+    var_prog : ARRAY[2] OF STRING[12]
+    search_tag : STRING[12]
+    tag_ident : INTEGER
+    goal_tag : STRING[TAG_LENGTH]
+    goal_id : INTEGER
+    func_code : INTEGER
+    done : BOOLEAN
+    startdata : BOOLEAN
+    i : INTEGER
+    status : INTEGER
+  BEGIN
+    --open xml file
+    xml__open_file(filename, 'RO', fl)
+
+    -- parse out program name and var name
+    var_prog[1] = get_varname(out_var_str)
+    var_prog[2] = get_progname(out_var_str)
+
+    --register tag
+    goal_id = xml__register_tag_(fl, tag_name)
+
+    done = FALSE
+    startdata  = FALSE
+    --keep track of tag occurances
+    i = 0
+    -- search through the xml file 
+    WHILE (done = FALSE) DO
+      --get the next tag in the xml file
+      XML_SCAN(fl, search_tag, tag_ident, func_code, status)
+%ifdef DEBUG_BUILD
+      xmldbg__print(DEBUG, 'status of xml tag '+ search_tag +' : ' + i_to_s(status) )
+%endif
+
+      SELECT status OF
+        -- end of file
+        CASE(SUCCESS):
+          done = TRUE
+        -- tag found
+        CASE(XML_FUNCTION):
+          status = 0
+          IF (tag_ident = goal_id) THEN
+            --increment to find correct index
+            i = i + 1
+            IF (i=tag_indx) THEN
+              SELECT func_code OF
+                CASE (XML_START): -- start tag <name>
+%ifdef DEBUG_BUILD
+                  xmldbg__print(DEBUG, 'found '+ i_to_s(i) +' occurance of start tag: '+ search_tag )
+                  xmldbg__print(DEBUG, 'setting attributes to '+ out_var_str )
+%endif
+                  --store attribute values in 'out_var_str'
+                  XML_SETVAR(fl, var_prog[2], var_prog[1], status)
+                  startdata = TRUE
+                
+                CASE (XML_END): -- complete tag <name />
+%ifdef DEBUG_BUILD
+                  xmldbg__print(DEBUG, 'found '+ i_to_s(i) +' occurance of complete tag: '+ search_tag )
+                  xmldbg__print(DEBUG, 'setting attributes to '+ out_var_str )
+%endif
+                  IF (startdata = TRUE) THEN
+                    -- switch to false when end tag is found
+                    -- skip any data found in end tag
+                    startdata = FALSE
+                  ELSE
+                    --store attribute values in 'out_var_str'
+                    XML_SETVAR(fl, var_prog[2], var_prog[1], status)
+                  ENDIF
+                CASE (XML_TXCONT):
+                ELSE:
+                  karelError(XML_TAGNFND,'xml function code ' + i_to_s(func_code) + ' not handled', ER_ABORT)
+              ENDSELECT
+            ENDIF
+          ENDIF
+        CASE (XML_NOFILE):
+          karelError(status,'xml file' + filename + 'needs to be loaded', ER_ABORT)
+        ELSE:
+          IF (status <> XML_SCANLIM) THEN
+            POST_ERR(status, '', 0 ,0)
+            done = TRUE
+          ENDIF
+      ENDSELECT
+    ENDWHILE
+
+    --close xml file
+    xml__close_file(filename, fl)
+
+  END xml__get_attributes
+
+
+ROUTINE xml__get_content
+  VAR
+    text_idx : INTEGER
+    numattr : INTEGER
+    attrnames : ARRAY[5] OF STRING[32]
+    attrvalues : ARRAY[5] OF STRING[32]
+    search_tag : STRING[12]
+    tag_ident : INTEGER
+    goal_tag : STRING[LIST_STRING_LEN]
+    goal_id : INTEGER
+    parent_id : INTEGER
+    func_code : INTEGER
+    done : BOOLEAN
+    textdone : BOOLEAN
+    searchgate : BOOLEAN
+    i, j : INTEGER
+    status : INTEGER
+  BEGIN
+    --open xml file
+    xml__open_file(filename, 'RO', fl)
+
+    -- register parent tag
+    IF (parent_tag <> '') THEN
+      parent_id = xml__register_tag_(fl, parent_tag)
+    ENDIF
+    --register tags into list string
+    goal_tag = ''
+    FOR i=1 TO ARRAY_LEN(tag_names) DO
+      goal_id = xml__register_tag_(fl, tag_names[i])
+      IF (goal_tag <> '') THEN
+        goal_tag = goal_tag + ',' + tag_names[i]
+      ELSE
+        goal_tag = tag_names[i]
+      ENDIF
+    ENDFOR
+
+    IF (STR_LEN(goal_tag) = LIST_STRING_LEN) THEN
+      karelError(STR_TOO_LONG,'length of tags might exceed list string buffer', ER_WARN)
+    ENDIF
+
+    textdone = TRUE
+    done = FALSE
+    --start index for out_content, will index when tag is found
+    text_idx = 0
+    --keep track of parent tag occurances
+    j = 1
+    searchgate = FALSE
+    -- search through the xml file 
+    WHILE (done = FALSE) DO
+      --get the next tag in the xml file
+      XML_SCAN(fl, search_tag, tag_ident, func_code, status)
+%ifdef DEBUG_BUILD
+      xmldbg__print(DEBUG, 'status of xml tag '+ search_tag +' : ' + i_to_s(status) )
+%endif
+
+      SELECT status OF
+        -- end of file
+        CASE(SUCCESS):
+          done = TRUE
+        -- tag found
+        CASE(XML_FUNCTION):
+          --if parent tag is set, use 'searchgate' to determine if XML_GETDATA
+          --should be ran on parent contents
+          IF (parent_tag <> '') THEN
+            IF (j = tag_indx) THEN
+              searchgate = TRUE
+            ELSE
+              searchgate = FALSE
+            ENDIF
+          ELSE
+            searchgate = TRUE
+          ENDIF
+
+          status = 0
+            SELECT func_code OF
+              CASE (XML_START): -- start tag <name>
+%ifdef DEBUG_BUILD
+                xmldbg__print(DEBUG, 'found start tag, '+ search_tag )
+%endif
+                --increment index if tag is still in list
+                IF ((char_count(goal_tag, search_tag) > 0) AND searchgate) THEN
+                  text_idx = text_idx + 1
+                  --remove tag from list
+%ifdef DEBUG_BUILD
+                  xmldbg__print(DEBUG, 'getting content... ' )
+%endif
+                  goal_tag = remove_char(goal_tag, search_tag)
+                  XML_GETDATA(fl, numattr, attrnames, attrvalues, out_content[text_idx], 
+                            textdone, status)
+%ifdef DEBUG_BUILD
+                  xmldbg__print(DEBUG, 'returning '+ i_to_s(numattr) + ' attributes.' )
+%endif
+                ENDIF
+              
+              CASE (XML_END): -- end tag </ name>
+%ifdef DEBUG_BUILD
+                xmldbg__print(DEBUG, 'found end tag, '+ search_tag )
+%endif
+
+                IF (tag_ident=parent_id) THEN
+                  --increment if parent tag
+                  j = j + 1
+                ENDIF
+              CASE (XML_TXCONT):
+%ifdef DEBUG_BUILD
+                  xmldbg__print(DEBUG, 'text continues over buffer.' )
+                  xmldbg__print(DEBUG, 'getting content... ' )
+%endif          
+                  text_idx = text_idx + 1
+                  XML_GETDATA(fl, numattr, attrnames, attrvalues, out_content[text_idx], 
+                            textdone, status)
+%ifdef DEBUG_BUILD
+                  xmldbg__print(DEBUG, 'returning '+ i_to_s(numattr) + ' attributes.' )
+%endif
+              ELSE:
+                karelError(XML_TAGNFND,'xml function code ' + i_to_s(func_code) + ' not handled', ER_ABORT)
+            ENDSELECT
+
+          CASE (XML_NOFILE):
+            karelError(status,'xml file' + filename + 'needs to be loaded', ER_ABORT)
+          ELSE:
+            IF (status <> XML_SCANLIM) THEN
+              POST_ERR(status, '', 0 ,0)
+              done = TRUE
+            ENDIF
+        ENDSELECT
+    ENDWHILE
+
+%ifdef DEBUG_BUILD
+    xmldbg__print(DEBUG, 'parent tag '+ parent_tag + ' found ' + i_to_s(j) + ' times.' )
+%endif
+
+    --close xml file
+    xml__close_file(filename, fl)
+  END xml__get_content
+
+
+
+BEGIN
+END xmlib

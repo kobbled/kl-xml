@@ -1,0 +1,16 @@
+%include define_type.m
+
+
+%mode push
+%mode string QQQ "`" "`" "\\"
+%define hash_type_define(obj_name) `TYPE
+  T_XML_GRAPH FROM xmlib = STRUCTURE
+    id : INTEGER
+		parent : INTEGER
+	ENDSTRUCTURE`
+%mode pop
+
+--declare hash for TPEPROGRAMS
+%defeval hashname h_xml
+%defeval hval_def T_XML_GRAPH
+%defeval hval_type T_XML_GRAPH

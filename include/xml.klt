@@ -1,0 +1,9 @@
+%ifndef XML_VARS_T
+%define XML_VARS_T
+
+%define SMALL_TAG 16
+%define MEDIUM_TAG 32
+%define LARGE_TAG 64
+
+
+%endif --XML_VARS_T

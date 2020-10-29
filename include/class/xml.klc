@@ -1,0 +1,53 @@
+--.. ATTENTION::
+--            This module is not complete, and will not compile
+--            It is excluded from the package manifest and is
+--            only included as a skeleton script for future
+--            development of xmlib.
+PROGRAM class_name
+%NOBUSYLAMP
+%COMMENT = 'xml object'
+%NOLOCKGROUP
+%NOPAUSE = ERROR + TPENABLE + COMMAND
+
+%defeval BASE_CLASS class_name
+%defeval HASH_OBJECT hshxml
+
+%include xml.klt
+
+--xml errors
+%include klerxmlf.kl
+%include errors.klt
+
+%include xml_class.klt
+
+%from errors.klh %import karelError
+%include files.klh
+
+%include xml.klh
+
+%include xml_class.private.klh
+%include xml_class.klh
+
+-- Hash to store ids
+%class hshxml('hash.klc','hashclass.klh','hashxml.klt')
+
+--private:
+
+ROUTINE clear_ids_
+  VAR
+    empty : hval_type
+    ok : BOOLEAN
+  BEGIN
+    empty.id = 0 ; empty.parent = 0 ;
+    ok = hshxml__clear_table('BASE_CLASS', 'graph', empty)
+    IF NOT ok THEN
+      karelError(COULD_NOT_CLEAR_ARRAY,'Could not clear graph in BASE_CLASS.', ER_ABORT)
+    ENDIF
+  END clear_ids_
+
+--public:
+
+
+
+BEGIN
+END class_name

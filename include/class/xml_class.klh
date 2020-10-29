@@ -1,0 +1,20 @@
+--.. ATTENTION::
+--            This module is not complete, and will not compile
+--            It is excluded from the package manifest and is
+--            only included as a skeleton script for future
+--            development of xmlib.
+
+--header
+%include header_guard.m
+--oop
+%include namespace.m
+
+--start header file
+header_if -- ifndef class
+header_def -- define class
+
+-- namespaced members in format <prog_name_alias>__<func_name>
+declare_member(class_name,clear_ids_,class_name,clrid)
+ROUTINE clear_ids_ FROM class_name
+
+%endif --xml_h

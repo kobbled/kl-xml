@@ -1,0 +1,21 @@
+%ifndef xml_h
+%define xml_h
+
+%include namespace.m
+
+%define prog_name xml
+%define prog_name_alias xml
+
+-- namespaced members in format <prog_name_alias>__<func_name>
+declare_function(prog_name,open_file,prog_name_alias,open)
+ROUTINE xml__open_file(filename : STRING;  access_typ : STRING; fl : FILE) FROM xmlib
+declare_function(prog_name,close_file,prog_name_alias,close)
+ROUTINE xml__close_file(filename : STRING; fl : FILE) FROM xmlib
+declare_function(prog_name,get_attributes,prog_name_alias,getatr)
+ROUTINE xml__get_attributes(filename : STRING; fl : FILE; tag_name : STRING; tag_indx : INTEGER; out_var_str : STRING) FROM xmlib
+declare_function(prog_name,get_content,prog_name_alias,getcnt)
+ROUTINE xml__get_content(filename : STRING; fl : FILE; parent_tag : STRING; tag_indx : INTEGER; &
+                         tag_names : ARRAY OF STRING; out_content : ARRAY OF STRING) FROM xmlib
+
+
+%endif --xml_h

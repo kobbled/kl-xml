@@ -1,0 +1,26 @@
+addresses: 
+  - &id001
+      address: 458 Walkman Dr., Suite 222
+      city    : Royal Oak
+      state   : MI
+      postal  : 48046
+  - &id002
+      address: 13311 Venus Way
+      city    : Anchorage
+      state   : AK
+      postal  : 99515
+products:
+    - &prod001
+      "@sku"          : BL394D
+      "@desc" : "Basketball"
+      "@quantity"    : 4
+      "@price"       : 450.00
+    
+    - &prod002
+      "@sku"         : BL4438H
+      "@desc" : "Super Hoop"
+      "@quantity"    : 1
+      "@price"       : 2392.50
+
+ship-product: *prod002
+ship-to: *id001
