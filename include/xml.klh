@@ -15,7 +15,6 @@ declare_function(prog_name,get_attributes,prog_name_alias,getatr)
 ROUTINE xml__get_attributes(filename : STRING; fl : FILE; tag_name : STRING; tag_indx : INTEGER; out_var_str : STRING) FROM xmlib
 declare_function(prog_name,get_content,prog_name_alias,getcnt)
 ROUTINE xml__get_content(filename : STRING; fl : FILE; parent_tag : STRING; tag_indx : INTEGER; &
-                         tag_names : ARRAY OF STRING; out_content : ARRAY OF STRING) FROM xmlib
-
+                         tag_names : STRING; out_content : ARRAY OF STRING) FROM xmlib
 
 %endif --xml_h

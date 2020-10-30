@@ -26,7 +26,7 @@ PROGRAM xmlib
 %endif
 
 %from errors.klh %import karelError
-%from strings.klh %import rev_split, i_to_s, remove_char, search_str, char_count, get_progname, get_varname 
+%from strings.klh %import i_to_s, remove_char, extract_str, char_count, get_progname, get_varname 
 %from files.klh %import open, close
 %include xml.private.klh
 %include xml.klh
@@ -184,7 +184,6 @@ ROUTINE xml__get_content
     attrvalues : ARRAY[5] OF STRING[32]
     search_tag : STRING[12]
     tag_ident : INTEGER
-    goal_tag : STRING[LIST_STRING_LEN]
     goal_id : INTEGER
     parent_id : INTEGER
     func_code : INTEGER
@@ -201,20 +200,11 @@ ROUTINE xml__get_content
     IF (parent_tag <> '') THEN
       parent_id = xml__register_tag_(fl, parent_tag)
     ENDIF
-    --register tags into list string
-    goal_tag = ''
-    FOR i=1 TO ARRAY_LEN(tag_names) DO
-      goal_id = xml__register_tag_(fl, tag_names[i])
-      IF (goal_tag <> '') THEN
-        goal_tag = goal_tag + ',' + tag_names[i]
-      ELSE
-        goal_tag = tag_names[i]
-      ENDIF
-    ENDFOR
 
-    IF (STR_LEN(goal_tag) = LIST_STRING_LEN) THEN
-      karelError(STR_TOO_LONG,'length of tags might exceed list string buffer', ER_WARN)
-    ENDIF
+    --register child tags
+    FOR i=1 TO (char_count(tag_names, ',') + 1) DO
+      goal_id = xml__register_tag_(fl, extract_str(tag_names, ',', i))
+    ENDFOR
 
     textdone = TRUE
     done = FALSE
@@ -256,13 +246,12 @@ ROUTINE xml__get_content
                 xmldbg__print(DEBUG, 'found start tag, '+ search_tag )
 %endif
                 --increment index if tag is still in list
-                IF ((char_count(goal_tag, search_tag) > 0) AND searchgate) THEN
+                IF ((char_count(tag_names, search_tag) > 0) AND searchgate) THEN
                   text_idx = text_idx + 1
                   --remove tag from list
 %ifdef DEBUG_BUILD
                   xmldbg__print(DEBUG, 'getting content... ' )
 %endif
-                  goal_tag = remove_char(goal_tag, search_tag)
                   XML_GETDATA(fl, numattr, attrnames, attrvalues, out_content[text_idx], 
                             textdone, status)
 %ifdef DEBUG_BUILD

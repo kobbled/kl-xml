@@ -44,15 +44,13 @@ ROUTINE get_attr
   VAR
     id : INTEGER
     i : INTEGER
-    tag_names : ARRAY[4] OF STRING[12]
   BEGIN
 
     xml__get_attributes(xml2_name, xml2, 'products', 1, '[test_xml]product1')
     xml__get_attributes(xml2_name, xml2, 'products', 2, '[test_xml]product2')
 
-    s_to_arr('address,city,state,postal', ',', tag_names)
-    xml__get_content(xml2_name, xml2, 'addresses', 1, tag_names, address1)
-    xml__get_content(xml2_name, xml2, 'addresses', 2, tag_names, address2)
+    xml__get_content(xml2_name, xml2, 'addresses', 1, 'address,city,state,postal', address1)
+    xml__get_content(xml2_name, xml2, 'addresses', 2, 'address,city,state,postal', address2)
 
   END get_attr
 

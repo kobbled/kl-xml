@@ -4,7 +4,7 @@
 %mode push
 %mode string QQQ "`" "`" "\\"
 %define hash_type_define(obj_name) `TYPE
-  T_XML_GRAPH FROM xmlib = STRUCTURE
+  T_XML_GRAPH FROM obj_name = STRUCTURE
     id : INTEGER
 		parent : INTEGER
 	ENDSTRUCTURE`
