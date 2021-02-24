@@ -18,10 +18,12 @@
   "depends" : [
     "files",
     "errors",
+    "ktransw-macros"
+  ],
+  "tests-depends" : [
     "display",
     "multitask",
     "Strings",
-    "KUnit",
-    "ktransw-macros"
+    "KUnit"
   ]
 }
