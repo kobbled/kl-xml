@@ -203,7 +203,7 @@ ROUTINE xml__get_content
 
     --register child tags
     FOR i=1 TO (char_count(tag_names, ',') + 1) DO
-      goal_id = xml__register_tag_(fl, extract_str(tag_names, ',', i))
+      goal_id = xml__register_tag_(fl, extract_str(tag_names, ',', i, i))
     ENDFOR
 
     textdone = TRUE
