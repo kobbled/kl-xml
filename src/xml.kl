@@ -133,12 +133,15 @@ ROUTINE xml__get_attributes
             IF (i=tag_indx) THEN
               SELECT func_code OF
                 CASE (XML_START): -- start tag <name>
-%ifdef DEBUG_BUILD
+%ifdef DEBUG_BUILD 
                   xmldbg__print(DEBUG, 'found '+ i_to_s(i) +' occurance of start tag: '+ search_tag )
                   xmldbg__print(DEBUG, 'setting attributes to '+ out_var_str )
 %endif
                   --store attribute values in 'out_var_str'
                   XML_SETVAR(fl, var_prog[2], var_prog[1], status)
+%ifdef DEBUG_BUILD
+                  xmldbg__print(DEBUG, 'status of setvar: '+ i_to_s(status))
+%endif
                   startdata = TRUE
                 
                 CASE (XML_END): -- complete tag <name />
@@ -153,6 +156,9 @@ ROUTINE xml__get_attributes
                   ELSE
                     --store attribute values in 'out_var_str'
                     XML_SETVAR(fl, var_prog[2], var_prog[1], status)
+%ifdef DEBUG_BUILD
+                    xmldbg__print(DEBUG, 'status of setvar: '+ i_to_s(status))
+%endif
                   ENDIF
                 CASE (XML_TXCONT):
                 ELSE:

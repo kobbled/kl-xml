@@ -13,15 +13,31 @@ TYPE
     quantity : BYTE
   ENDSTRUCTURE
 
+  t_layers = STRUCTURE
+    num : SHORT
+    passes : SHORT
+    startln : INTEGER
+    endln : INTEGER
+  ENDSTRUCTURE
+
+  t_block = STRUCTURE
+    layers : INTEGER
+  ENDSTRUCTURE
+
 VAR
 %define xml1_name 'fr:small_test.xml'
   xml1 : FILE
 %define xml2_name 'fr:attr_test.xml'
   xml2 : FILE
+%define xml3_name 'fr:h_test0053.xml'
+  xml3 : FILE
   product1 : t_product
   product2 : t_product
   address1 : ARRAY[4] OF STRING[30]
   address2 : ARRAY[4] OF STRING[30]
+  block : t_block
+  ldata : t_layers
+  layers : ARRAY[3] OF t_layers
 
 %ifdef DEBUG_BUILD
 %include display.c.klt
@@ -53,6 +69,20 @@ ROUTINE get_attr
     xml__get_content(xml2_name, xml2, 'addresses', 2, 'address,city,state,postal', address2)
 
   END get_attr
+
+ROUTINE get_layers
+  VAR
+    id : INTEGER
+    i : INTEGER
+
+  BEGIN
+    xml__get_attributes(xml3_name, xml3, 'block', 1, '[test_xml]block')
+
+    FOR i = 1 TO block.layers DO
+      xml__get_attributes(xml3_name, xml3, 'layer', i, '[test_xml]ldata')
+      layers[i] = ldata
+    ENDFOR
+  END get_layers
 
 ROUTINE t_get_attr1 : BOOLEAN
   BEGIN
@@ -93,14 +123,15 @@ BEGIN
   display__clear
 
   --(log_filename, show_date, show_DEBUG, show_info)
-  xmldbg__constructor(xml_log_name, TRUE, TRUE, TRUE) -- print to console
+  xmldbg__new('', TRUE, TRUE, TRUE) -- print to console
   xmldbg__clear_file
   -- start log
   xmldbg__print(INFO, 'XML DEBUG LOG')
   xmldbg__show_date(FALSE)
 %endif
 
-  get_attr
+  --get_attr
+  get_layers
 %ifndef DEBUG_BUILD
   kunit_test('test xml attributes 1', t_get_attr1) --asserts 4
   kunit_test('test xml attributes 2', t_get_attr2) --asserts 4
@@ -113,7 +144,7 @@ BEGIN
 %ifdef DEBUG_BUILD
   --print pipe
   xmldbg__write_pipe
-  xmldbg__destructor
+  xmldbg__delete
 
   display__show
 %endif

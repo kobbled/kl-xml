@@ -13,6 +13,7 @@
   ],
   "tests" : [
     "test/attr_test.yml",
+    "test/h_test0053.xml",
     "test/test_xml.kl"
   ],
   "depends" : [
